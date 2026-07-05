@@ -275,7 +275,13 @@
       <button class="auth-tab" id="tabSignup">SIGN UP</button>
     </div>
     <div class="field"><label>Username</label><input id="authUser" type="text" placeholder="e.g. ali_raza" autocomplete="username"/></div>
-    <div class="field"><label>Password</label><input id="authPass" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
+    <div class="field">
+      <label>Password</label>
+      <div style="position:relative;">
+        <input id="authPass" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:52px;"/>
+        <button type="button" id="togglePassBtn" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:transparent; border:none; cursor:pointer; padding:5px 6px; color:var(--red); font-size:9px; font-weight:700; letter-spacing:1px; line-height:1;">SHOW</button>
+      </div>
+    </div>
     <button class="auth-btn" id="authSubmit">LOG IN</button>
     <div class="auth-error" id="authError"></div>
     <div class="auth-note">Your trades are securely saved to the Axiom server.<br/>An internet connection is required.</div>
@@ -597,6 +603,13 @@ const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Satur
 function $(id){ return document.getElementById(id); }
 
 /* ══════════════════ AUTH (now backed by the real server — Step 4a) ══════════════════ */
+
+$("togglePassBtn").addEventListener("click", ()=>{
+  const input = $("authPass");
+  const btn = $("togglePassBtn");
+  if(input.type === "password"){ input.type = "text"; btn.textContent = "HIDE"; }
+  else { input.type = "password"; btn.textContent = "SHOW"; }
+});
 
 $("tabLogin").addEventListener("click", ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("authSubmit").textContent="LOG IN"; $("authError").textContent=""; });
 $("tabSignup").addEventListener("click", ()=>{ authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("authSubmit").textContent="CREATE ACCOUNT"; $("authError").textContent=""; });
