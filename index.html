@@ -286,9 +286,17 @@
     </div>
     <button class="auth-btn" id="authSubmit">LOG IN</button>
     <div class="auth-error" id="authError"></div>
+    <div style="display:flex; align-items:center; gap:10px; margin:16px 0 12px;">
+      <div style="flex:1; height:1px; background:var(--input-border);"></div>
+      <span style="font-size:9px; color:var(--faint); letter-spacing:1px; text-transform:uppercase;">or</span>
+      <div style="flex:1; height:1px; background:var(--input-border);"></div>
+    </div>
+    <div id="googleSignInBtn" style="display:flex; justify-content:center;"></div>
     <div class="auth-note">Your trades are securely saved to the Axiom server.<br/>An internet connection is required.</div>
   </div>
 </div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <div class="wrap">
 
@@ -657,6 +665,47 @@ function loginAs(user, token){
   $("authSubmit").textContent = authMode === "signup" ? "CREATE ACCOUNT" : "LOG IN";
   bootApp();
 }
+
+/* ══════════════════ GOOGLE SIGN-IN ══════════════════ */
+const GOOGLE_CLIENT_ID = "789780327572-vs21qpesj0itorku8o1pb5ibt4jmo9n8.apps.googleusercontent.com";
+
+async function handleGoogleCredential(response){
+  const err = $("authError");
+  err.textContent = "";
+  try {
+    const res = await fetch(API_BASE + "/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: response.credential }),
+    });
+    const data = await res.json();
+    if(!res.ok){
+      err.textContent = data.error || "Google sign-in failed.";
+      return;
+    }
+    loginAs(data.user.username, data.token);
+  } catch(e){
+    err.textContent = "Could not reach the server. Is the backend running?";
+  }
+}
+
+function initGoogleSignIn(){
+  if(typeof google === "undefined" || !google.accounts){
+    setTimeout(initGoogleSignIn, 300);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+  });
+  google.accounts.id.renderButton($("googleSignInBtn"), {
+    theme: "outline",
+    size: "large",
+    width: 320,
+    text: "continue_with",
+  });
+}
+initGoogleSignIn();
 
 function logout(){
   localStorage.removeItem("axiom_token");
