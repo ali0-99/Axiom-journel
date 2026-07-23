@@ -311,6 +311,8 @@
     </div>
     <div class="header-right">
       <span class="user-chip" id="userChip"></span>
+      <span class="user-chip" id="planBadge" style="display:none;"></span>
+      <button class="btn btn-outline" id="upgradeBtn" style="display:none; border-color:#A15C00; color:#A15C00;">UPGRADE</button>
       <select id="accountSelector" class="select-mini" style="width:120px;"></select>
       <input id="entrySearch" type="text" class="select-mini" placeholder="Search date or pair..." style="display:none; width:150px;" />
       <select id="pastEntries" class="select-mini" style="display:none;">
@@ -361,6 +363,20 @@
     <button class="tab-btn" data-tab="2">PSYCHOLOGY</button>
     <button class="tab-btn" data-tab="3">IMPROVE</button>
     <button class="tab-btn" data-tab="4">METRICS</button>
+  </div>
+
+  <!-- UPGRADE MODAL -->
+  <div id="upgradeModal" style="display:none; position:fixed; inset:0; background:rgba(32,26,18,0.55); z-index:900; align-items:center; justify-content:center;">
+    <div style="width:100%; max-width:380px; background:#FFFFFF; border:1px solid var(--card-border); border-radius:10px; padding:28px; text-align:center; margin:16px;">
+      <div style="font-size:16px; font-weight:800; letter-spacing:1px; margin-bottom:6px; color:var(--text);">UPGRADE TO PAID</div>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:18px; line-height:1.6;">Payment via card, JazzCash, and Easypaisa is being set up.<br/>Full pricing and checkout are coming soon.</div>
+      <button class="btn btn-outline" id="closeUpgradeModal" style="width:100%; padding:10px; margin-bottom:10px;">CLOSE</button>
+      <div style="border-top:1px solid var(--card-border); margin-top:14px; padding-top:14px;">
+        <div style="font-size:9px; color:var(--faint); letter-spacing:1px; margin-bottom:8px;">DEVELOPER TESTING ONLY</div>
+        <button class="btn btn-outline" id="devTestUpgradeBtn" style="width:100%; padding:8px; font-size:10px;">TEST UPGRADE (ADMIN)</button>
+        <div id="upgradeModalMsg" style="font-size:11px; margin-top:8px; min-height:14px;"></div>
+      </div>
+    </div>
   </div>
 
   <div class="content">
@@ -1523,7 +1539,59 @@ async function bootApp(){
   renderAccountSelector();
   initDefaults();
   await bootAccountData();
+  refreshSubscriptionStatus();
 }
+
+/* ══════════════════ SUBSCRIPTION / PLAN ══════════════════ */
+async function refreshSubscriptionStatus(){
+  try {
+    const data = await apiFetch("/subscription");
+    const badge = $("planBadge");
+    const upBtn = $("upgradeBtn");
+    if(data.isPaid){
+      badge.textContent = "PAID";
+      badge.style.display = "inline-block";
+      badge.style.color = "var(--green)";
+      badge.style.borderColor = "rgba(22,128,60,0.4)";
+      upBtn.style.display = "none";
+    } else {
+      badge.textContent = "FREE";
+      badge.style.display = "inline-block";
+      badge.style.color = "var(--muted)";
+      upBtn.style.display = "inline-block";
+    }
+  } catch(e){
+    console.error("Could not load subscription status:", e.message);
+  }
+}
+
+$("upgradeBtn").addEventListener("click", ()=>{
+  $("upgradeModalMsg").textContent = "";
+  $("upgradeModal").style.display = "flex";
+});
+$("closeUpgradeModal").addEventListener("click", ()=>{
+  $("upgradeModal").style.display = "none";
+});
+$("devTestUpgradeBtn").addEventListener("click", async ()=>{
+  const secret = prompt("Enter admin secret (developer testing only):");
+  if(!secret) return;
+  const msg = $("upgradeModalMsg");
+  msg.style.color = "var(--muted)";
+  msg.textContent = "Upgrading...";
+  try {
+    await apiFetch("/subscription/manual-upgrade", {
+      method: "POST",
+      body: JSON.stringify({ adminSecret: secret, periodDays: 30 }),
+    });
+    msg.style.color = "var(--green)";
+    msg.textContent = "Upgraded! Closing...";
+    await refreshSubscriptionStatus();
+    setTimeout(()=>{ $("upgradeModal").style.display = "none"; }, 1200);
+  } catch(e){
+    msg.style.color = "var(--red)";
+    msg.textContent = e.message || "Upgrade failed — check the secret.";
+  }
+});
 
 (async function initAuthCheck(){
   const token = localStorage.getItem("axiom_token");
