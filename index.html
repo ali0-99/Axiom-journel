@@ -643,6 +643,15 @@ const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Satur
 
 function $(id){ return document.getElementById(id); }
 
+// Escapes user-entered text before it's ever inserted via innerHTML —
+// prevents someone typing something like <img src=x onerror=...> into a
+// trade field or account name from having it execute as real HTML/JS.
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str === undefined || str === null ? "" : String(str);
+  return div.innerHTML;
+}
+
 /* ══════════════════ AUTH (now backed by the real server — Step 4a) ══════════════════ */
 
 $("togglePassBtn").addEventListener("click", ()=>{
@@ -692,7 +701,7 @@ function loginAs(user, token){
   localStorage.setItem("axiom_token", token);
   localStorage.setItem("axiom_username", user);
   $("authOverlay").style.display = "none";
-  $("userChip").innerHTML = "Trader: <b>"+user+"</b>";
+  $("userChip").innerHTML = "Trader: <b>"+escapeHtml(user)+"</b>";
   $("authSubmit").textContent = authMode === "signup" ? "CREATE ACCOUNT" : "LOG IN";
   bootApp();
 }
@@ -1043,7 +1052,7 @@ async function loadAccountsFromServer(){
 
 function renderAccountSelector(){
   const sel = $("accountSelector");
-  sel.innerHTML = accountsCache.map(a=>`<option value="${a.id}">${a.name}</option>`).join("") + `<option value="__new__">+ New Account...</option>`;
+  sel.innerHTML = accountsCache.map(a=>`<option value="${a.id}">${escapeHtml(a.name)}</option>`).join("") + `<option value="__new__">+ New Account...</option>`;
   sel.value = currentAccountId;
 }
 
@@ -1175,7 +1184,7 @@ function entryLabel(id){
 
 function renderEntryOptions(list){
   const sel = $("pastEntries");
-  sel.innerHTML = '<option value="">Past Entries</option>' + list.map(id=>`<option value="${id}">${entryLabel(id)}</option>`).join("");
+  sel.innerHTML = '<option value="">Past Entries</option>' + list.map(id=>`<option value="${id}">${escapeHtml(entryLabel(id))}</option>`).join("");
 }
 
 function refreshPastEntries(){
