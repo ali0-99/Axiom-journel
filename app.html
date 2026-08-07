@@ -277,6 +277,7 @@
       <button class="auth-tab" id="tabSignup">SIGN UP</button>
     </div>
     <div class="field"><label>Username</label><input id="authUser" type="text" placeholder="Enter your username" autocomplete="username"/></div>
+    <div class="field" id="authEmailField" style="display:none;"><label>Email</label><input id="authEmail" type="email" placeholder="Enter your email" autocomplete="email"/></div>
     <div class="field">
       <label>Password</label>
       <div style="position:relative;">
@@ -367,6 +368,10 @@
 
   <!-- TABS -->
   <div class="content" style="padding-bottom:0;">
+    <div class="backup-banner" id="verifyBanner" style="display:none; border-left-color:#A15C00;">
+      <span>Please verify your email — check your inbox for a link from Axiom Cooperation. <b>Didn't get it?</b> Check spam, or it may take a few minutes.</span>
+      <button id="dismissVerifyBanner">DISMISS</button>
+    </div>
     <div class="backup-banner" id="backupBanner">
       <span>Your data lives only in this browser. <b>Export a backup regularly</b> — clearing browser data will erase everything with no recovery.</span>
       <button id="bannerExportBtn">EXPORT NOW</button>
@@ -657,15 +662,17 @@ $("togglePassBtn").addEventListener("click", ()=>{
   else { input.type = "password"; btn.textContent = "SHOW"; }
 });
 
-$("tabLogin").addEventListener("click", ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("authSubmit").textContent="LOG IN"; $("authError").textContent=""; });
-$("tabSignup").addEventListener("click", ()=>{ authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("authSubmit").textContent="CREATE ACCOUNT"; $("authError").textContent=""; });
+$("tabLogin").addEventListener("click", ()=>{ authMode="login"; $("tabLogin").classList.add("active"); $("tabSignup").classList.remove("active"); $("authSubmit").textContent="LOG IN"; $("authError").textContent=""; $("authEmailField").style.display="none"; });
+$("tabSignup").addEventListener("click", ()=>{ authMode="signup"; $("tabSignup").classList.add("active"); $("tabLogin").classList.remove("active"); $("authSubmit").textContent="CREATE ACCOUNT"; $("authError").textContent=""; $("authEmailField").style.display="block"; });
 
 $("authSubmit").addEventListener("click", async ()=>{
   const user = $("authUser").value.trim();
+  const email = $("authEmail").value.trim();
   const pass = $("authPass").value;
   const err = $("authError");
   const btn = $("authSubmit");
   if(!user || !pass){ err.textContent = "Enter a username and password."; return; }
+  if(authMode === "signup" && !email){ err.textContent = "Enter your email address."; return; }
 
   const endpoint = authMode === "signup" ? "/auth/signup" : "/auth/login";
   const originalLabel = btn.textContent;
@@ -673,10 +680,12 @@ $("authSubmit").addEventListener("click", async ()=>{
   err.textContent = "";
 
   try {
+    const payload = { username: user, password: pass };
+    if(authMode === "signup") payload.email = email;
     const res = await fetch(API_BASE + endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: user, password: pass }),
+      body: JSON.stringify(payload),
     });
     const body = await res.json();
     if(!res.ok){
@@ -684,12 +693,17 @@ $("authSubmit").addEventListener("click", async ()=>{
       btn.textContent = originalLabel;
       return;
     }
+    if(authMode === "signup" && body.user && !body.user.emailVerified){
+      pendingVerifyNotice = true;
+    }
     loginAs(body.user.username, body.token);
   } catch(netErr){
     err.textContent = "Could not reach the server. Is the backend running?";
     btn.textContent = originalLabel;
   }
 });
+
+let pendingVerifyNotice = false;
 
 function loginAs(user, token){
   currentUser = user;
@@ -699,8 +713,16 @@ function loginAs(user, token){
   $("authOverlay").style.display = "none";
   $("userChip").innerHTML = "Trader: <b>"+escapeHtml(user)+"</b>";
   $("authSubmit").textContent = authMode === "signup" ? "CREATE ACCOUNT" : "LOG IN";
+  if(pendingVerifyNotice){
+    $("verifyBanner").style.display = "flex";
+    pendingVerifyNotice = false;
+  }
   bootApp();
 }
+
+$("dismissVerifyBanner").addEventListener("click", ()=>{
+  $("verifyBanner").style.display = "none";
+});
 
 /* ══════════════════ GOOGLE SIGN-IN ══════════════════ */
 const GOOGLE_CLIENT_ID = "789780327572-vs21qpesj0itorku8o1pb5ibt4jmo9n8.apps.googleusercontent.com";
