@@ -217,7 +217,7 @@
 
   /* Progress pie widget */
   #progressWidget {
-    position: fixed; top: 96px; right: 22px; width: 176px;
+    position: fixed; top: 96px; right: 22px; width: 240px;
     background: #FFFFFF; border: 1px solid var(--card-border); border-radius: 10px;
     padding: 14px; z-index: 80; box-shadow: 0 6px 24px rgba(32,26,18,0.10);
   }
@@ -228,7 +228,8 @@
   .pw-circle .pw-num { font-size: 15px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--text); line-height: 1; }
   .pw-circle .pw-lbl { font-size: 7px; color: var(--faint); letter-spacing: 1px; margin-top: 1px; }
   .pw-legend { font-size: 10px; line-height: 1.9; }
-  .pw-legend .row { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  .pw-legend .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--muted); white-space: nowrap; }
+  .pw-legend .row b { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 9.5px; }
   .pw-legend .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .pw-legend b { color: var(--text); font-family: 'JetBrains Mono', monospace; }
   @media (max-width: 900px) { #progressWidget { position: static; width: auto; margin: 0 18px 14px; } }
@@ -362,6 +363,12 @@
         <div class="row"><span class="dot" style="background:#16803C;"></span>Win <b id="pwWin">0%</b></div>
         <div class="row"><span class="dot" style="background:#CC1A1A;"></span>Loss <b id="pwLoss">0%</b></div>
         <div class="row"><span class="dot" style="background:#6B7280;"></span>BE <b id="pwBE">0%</b></div>
+      </div>
+      <div class="pw-legend" style="border-left:1px solid var(--card-border); padding-left:14px; margin-left:4px;">
+        <div class="row">Win Rate <b id="pwWinRate">0%</b></div>
+        <div class="row">Avg RR <b id="pwAvgRR">—</b></div>
+        <div class="row">Best Pair <b id="pwBestPair">—</b></div>
+        <div class="row">Worst Pair <b id="pwWorstPair">—</b></div>
       </div>
     </div>
   </div>
@@ -1542,6 +1549,8 @@ function computeMetricsAuto(){
 function refreshProgress(){
   if(!currentUser) return;
   let win=0, loss=0, be=0, total=0;
+  let rrSum=0, rrCount=0;
+  const pairPnL = {};
   tradesCache.forEach(t=>{
     const e = t.data;
     if(!e || !e.result || e.result==="Pending") return;
@@ -1549,12 +1558,24 @@ function refreshProgress(){
     if(e.result==="Win") win++;
     else if(e.result==="Loss") loss++;
     else if(e.result==="Break Even") be++;
+
+    const rrNum = parseFloat(String(e.rrRatio||"").replace(/[^0-9.]/g,""));
+    if(!isNaN(rrNum) && rrNum>0){ rrSum += rrNum; rrCount++; }
+
+    if(e.pair){
+      const pnl = parsePnL(e.pnl);
+      if(pnl !== null){
+        pairPnL[e.pair] = (pairPnL[e.pair]||0) + pnl;
+      }
+    }
   });
   $("pwTotal").textContent = total;
   const circle = $("pwCircle");
   if(total===0){
     circle.style.background = "conic-gradient(#EDE4D0 0% 100%)";
     $("pwWin").textContent = "0%"; $("pwLoss").textContent = "0%"; $("pwBE").textContent = "0%";
+    $("pwWinRate").textContent = "0%"; $("pwAvgRR").textContent = "—";
+    $("pwBestPair").textContent = "—"; $("pwWorstPair").textContent = "—";
     return;
   }
   const winPct = (win/total)*100;
@@ -1566,6 +1587,21 @@ function refreshProgress(){
   $("pwWin").textContent = Math.round(winPct)+"%";
   $("pwLoss").textContent = Math.round(lossPct)+"%";
   $("pwBE").textContent = Math.round(bePct)+"%";
+
+  const decisiveTotal = win + loss;
+  $("pwWinRate").textContent = decisiveTotal>0 ? Math.round((win/decisiveTotal)*100)+"%" : "0%";
+  $("pwAvgRR").textContent = rrCount>0 ? (rrSum/rrCount).toFixed(2)+"R" : "—";
+
+  const pairEntries = Object.entries(pairPnL);
+  if(pairEntries.length>0){
+    pairEntries.sort((a,b)=>b[1]-a[1]);
+    const best = pairEntries[0];
+    const worst = pairEntries[pairEntries.length-1];
+    $("pwBestPair").textContent = best[0] + " (" + (best[1]>=0?"+":"") + best[1].toFixed(0) + ")";
+    $("pwWorstPair").textContent = worst[0] + " (" + (worst[1]>=0?"+":"") + worst[1].toFixed(0) + ")";
+  } else {
+    $("pwBestPair").textContent = "—"; $("pwWorstPair").textContent = "—";
+  }
 }
 
 /* ══════════════════ BOOT ══════════════════ */
