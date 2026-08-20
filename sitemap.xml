@@ -11,6 +11,21 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ali0-99.github.io/Axiom-journel/blog/index.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ali0-99.github.io/Axiom-journel/blog/risk-to-reward-ratio.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ali0-99.github.io/Axiom-journel/blog/trading-journal-habits.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ali0-99.github.io/Axiom-journel/privacy-policy.html</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
