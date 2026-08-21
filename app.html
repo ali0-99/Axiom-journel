@@ -81,10 +81,10 @@
   .brand-text .title { font-size: 18px; font-weight: 800; letter-spacing: 3px; color: var(--text); }
   .brand-text .sub { font-size: 9px; color: var(--red); letter-spacing: 4px; font-weight: 700; }
   .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .date-box { color: var(--muted); font-size: 11px; text-align: right; line-height: 1.5; }
+  .date-box { color: var(--muted); font-size: 13px; text-align: right; line-height: 1.5; padding: 0 4px; }
   .date-box .d1 { color: var(--text); }
   .date-box .d2 { color: var(--red); font-weight: 700; }
-  .user-chip { color: var(--muted); font-size: 11px; padding: 6px 10px; border: 1px solid var(--input-border); border-radius: 4px; background: var(--input-bg); }
+  .user-chip { color: var(--muted); font-size: 12.5px; padding: 8px 12px; border: 1px solid var(--input-border); border-radius: 4px; background: var(--input-bg); }
   .user-chip b { color: var(--text); }
 
   select, input, textarea {
@@ -104,8 +104,8 @@
 
   .btn {
     border: none; border-radius: 4px; cursor: pointer;
-    font-size: 11px; font-weight: 700; letter-spacing: 1px;
-    padding: 7px 14px;
+    font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    padding: 9px 16px;
   }
   .btn-outline { background: transparent; border: 1px solid var(--red); color: var(--red); }
   .btn-outline:hover { background: rgba(204,26,26,0.08); }
@@ -114,7 +114,7 @@
   .btn-save.saved { background: #167a3f; }
   .btn-save.error { background: #9a2222; }
 
-  .select-mini { width: 140px; font-size: 11px; padding: 7px 10px; color: var(--muted); cursor: pointer; }
+  .select-mini { width: 168px; font-size: 12.5px; padding: 9px 12px; color: var(--muted); cursor: pointer; }
 
   /* Tabs */
   .tabs {
@@ -332,7 +332,7 @@
       <span class="user-chip" id="planBadge" style="display:none;"></span>
       <button class="btn btn-outline" id="upgradeBtn" style="display:none; border-color:#A15C00; color:#A15C00;">UPGRADE</button>
       <select id="accountSelector" class="select-mini" style="width:120px;"></select>
-      <input id="entrySearch" type="text" class="select-mini" placeholder="Search date or pair..." style="display:none; width:150px;" />
+      <input id="entrySearch" type="text" class="select-mini" placeholder="Search date or pair..." style="display:none; width:190px;" />
       <select id="pastEntries" class="select-mini" style="display:none;">
         <option value="">Past Entries</option>
       </select>
@@ -380,7 +380,7 @@
       <button id="dismissVerifyBanner">DISMISS</button>
     </div>
     <div class="backup-banner" id="backupBanner">
-      <span>Your data lives only in this browser. <b>Export a backup regularly</b> — clearing browser data will erase everything with no recovery.</span>
+      <span>Your trades are saved to your Axiom Cooperation account. <b>Export a backup anytime</b> for your own records or offline access.</span>
       <button id="bannerExportBtn">EXPORT NOW</button>
     </div>
   </div>
