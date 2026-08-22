@@ -217,20 +217,20 @@
 
   /* Progress pie widget */
   #progressWidget {
-    position: fixed; top: 96px; right: 22px; width: 240px;
+    position: fixed; top: 96px; right: 22px; width: 300px;
     background: #FFFFFF; border: 1px solid var(--card-border); border-radius: 10px;
-    padding: 14px; z-index: 80; box-shadow: 0 6px 24px rgba(32,26,18,0.10);
+    padding: 20px; z-index: 80; box-shadow: 0 6px 24px rgba(32,26,18,0.10);
   }
-  #progressWidget .pw-title { font-size: 9px; font-weight: 800; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; text-align: center; }
-  .pw-body { display: flex; align-items: center; gap: 12px; }
-  .pw-circle { position: relative; width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0; }
-  .pw-circle .pw-hole { position: absolute; inset: 9px; background: #FFFFFF; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-  .pw-circle .pw-num { font-size: 15px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--text); line-height: 1; }
-  .pw-circle .pw-lbl { font-size: 7px; color: var(--faint); letter-spacing: 1px; margin-top: 1px; }
-  .pw-legend { font-size: 10px; line-height: 1.9; }
-  .pw-legend .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--muted); white-space: nowrap; }
-  .pw-legend .row b { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 9.5px; }
-  .pw-legend .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  #progressWidget .pw-title { font-size: 11px; font-weight: 800; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 14px; text-align: center; }
+  .pw-body { display: flex; align-items: center; gap: 16px; }
+  .pw-circle { position: relative; width: 82px; height: 82px; border-radius: 50%; flex-shrink: 0; }
+  .pw-circle .pw-hole { position: absolute; inset: 11px; background: #FFFFFF; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .pw-circle .pw-num { font-size: 19px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--text); line-height: 1; }
+  .pw-circle .pw-lbl { font-size: 8px; color: var(--faint); letter-spacing: 1px; margin-top: 2px; }
+  .pw-legend { font-size: 12.5px; line-height: 2.1; }
+  .pw-legend .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); white-space: nowrap; }
+  .pw-legend .row b { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .pw-legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .pw-legend b { color: var(--text); font-family: 'JetBrains Mono', monospace; }
   @media (max-width: 900px) { #progressWidget { position: static; width: auto; margin: 0 18px 14px; } }
 
@@ -364,7 +364,7 @@
         <div class="row"><span class="dot" style="background:#CC1A1A;"></span>Loss <b id="pwLoss">0%</b></div>
         <div class="row"><span class="dot" style="background:#6B7280;"></span>BE <b id="pwBE">0%</b></div>
       </div>
-      <div class="pw-legend" style="border-left:1px solid var(--card-border); padding-left:14px; margin-left:4px;">
+      <div class="pw-legend" style="border-left:1px solid var(--card-border); padding-left:18px; margin-left:6px;">
         <div class="row">Win Rate <b id="pwWinRate">0%</b></div>
         <div class="row">Avg RR <b id="pwAvgRR">—</b></div>
         <div class="row">Best Pair <b id="pwBestPair">—</b></div>
@@ -378,10 +378,6 @@
     <div class="backup-banner" id="verifyBanner" style="display:none; border-left-color:#A15C00;">
       <span>Please verify your email — check your inbox for a link from Axiom Cooperation. <b>Didn't get it?</b> Check spam, or it may take a few minutes.</span>
       <button id="dismissVerifyBanner">DISMISS</button>
-    </div>
-    <div class="backup-banner" id="backupBanner">
-      <span>Your trades are saved to your Axiom Cooperation account. <b>Export a backup anytime</b> for your own records or offline access.</span>
-      <button id="bannerExportBtn">EXPORT NOW</button>
     </div>
   </div>
 
@@ -1391,7 +1387,6 @@ function exportBackup(){
   URL.revokeObjectURL(url);
 }
 $("exportBtn").addEventListener("click", exportBackup);
-$("bannerExportBtn").addEventListener("click", exportBackup);
 
 $("importBtn").addEventListener("click", ()=>{ $("importFile").click(); });
 $("importFile").addEventListener("change", e=>{
