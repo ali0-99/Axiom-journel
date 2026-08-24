@@ -268,6 +268,12 @@
   }
 </style>
 </head>
+<script>
+window.fbAsyncInit = function() {
+  FB.init({ appId: '1523599672856543', cookie: true, xfbml: false, version: 'v21.0' });
+};
+</script>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 <body>
 
 <!-- AUTH OVERLAY -->
@@ -776,8 +782,39 @@ function initGoogleSignIn(){
 initGoogleSignIn();
 
 $("facebookSignInBtn").addEventListener("click", ()=>{
-  $("authError").textContent = "Facebook sign-in is coming soon.";
+  const err = $("authError");
+  err.textContent = "";
+  if(typeof FB === "undefined"){
+    err.textContent = "Facebook SDK failed to load. Please refresh and try again.";
+    return;
+  }
+  FB.login(function(response){
+    if(response.authResponse && response.authResponse.accessToken){
+      handleFacebookToken(response.authResponse.accessToken);
+    } else {
+      err.textContent = "Facebook sign-in was cancelled.";
+    }
+  }, { scope: "email,public_profile" });
 });
+
+async function handleFacebookToken(accessToken){
+  const err = $("authError");
+  try {
+    const res = await fetch(API_BASE + "/auth/facebook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken }),
+    });
+    const data = await res.json();
+    if(!res.ok){
+      err.textContent = data.error || "Facebook sign-in failed.";
+      return;
+    }
+    loginAs(data.user.username, data.token);
+  } catch(e){
+    err.textContent = "Network error during Facebook sign-in.";
+  }
+}
 
 function logout(){
   localStorage.removeItem("axiom_token");
