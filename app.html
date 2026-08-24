@@ -794,7 +794,7 @@ $("facebookSignInBtn").addEventListener("click", ()=>{
     } else {
       err.textContent = "Facebook sign-in was cancelled.";
     }
-  }, { scope: "email,public_profile" });
+  }, { scope: "email" });
 });
 
 async function handleFacebookToken(accessToken){
