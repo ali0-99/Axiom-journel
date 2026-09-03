@@ -113,10 +113,10 @@ header {
   border-bottom: 3px solid var(--red);
   padding: 16px 0; position: sticky; top: 0; z-index: 50;
 }
-header .inner { display:flex; align-items:center; justify-content:space-between; }
+header .inner { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; row-gap:10px; }
 header .brand { font-size: 17px; font-weight: 800; letter-spacing: 3px; color: var(--text); text-decoration:none; }
 header .brand span { color: var(--red); }
-header nav a { color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; margin-left: 20px; }
+header nav a { color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; margin-left: 16px; white-space:nowrap; }
 header nav a:hover { color: var(--red); }
 .btn-cta { background: var(--red); color:#fff; padding: 9px 20px; border-radius:5px; text-decoration:none; font-weight:700; font-size:12px; letter-spacing:1px; }
 .btn-cta:hover { background: var(--red-dark); }
@@ -166,7 +166,7 @@ footer .links a { color: var(--red); margin-right: 14px; text-decoration:none; f
   <nav>
     <a href="blog/index.html">Blog</a>
     <a href="https://discord.gg/QmE5Ujv5J">Discord</a>
-    <a href="https://ali0-99.github.io/axiom-cooperation/">About Axiom Cooperation</a>
+    <a href="https://ali0-99.github.io/axiom-cooperation/">About</a>
     <a href="business-model.html">Business Model</a>
     <a href="privacy-policy.html">Privacy</a>
     <a href="terms-and-conditions.html">Terms</a>
