@@ -653,6 +653,7 @@ const API_BASE = "https://axiom-backend-w5ki.onrender.com/api";
 let authToken = null;
 
 let currentUser = null;
+let isPaidUser = false; // updated by refreshSubscriptionStatus(); gates multi-account, Excel export, and JSON backup
 let currentTradingAccount = "Main";
 let activeEntryId = null;
 let authMode = "login";
@@ -841,7 +842,11 @@ async function apiFetch(path, options = {}){
     throw new Error("Unauthorized");
   }
   const body = await res.json().catch(()=>({}));
-  if(!res.ok){ throw new Error(body.error || "Request failed."); }
+  if(!res.ok){
+    const err = new Error(body.error || "Request failed.");
+    err.code = body.code || null;
+    throw err;
+  }
   return body;
 }
 
@@ -1167,7 +1172,11 @@ $("accountSelector").addEventListener("change", async e=>{
       accountsCache.push(data.account);
       await switchToAccount(data.account.id);
     } catch(err){
-      alert(err.message || "Could not create the account.");
+      if(err.code === "UPGRADE_REQUIRED"){
+        $("upgradeModal").style.display = "flex";
+      } else {
+        alert(err.message || "Could not create the account.");
+      }
       renderAccountSelector();
     }
   } else {
@@ -1338,6 +1347,7 @@ function getSortedAllTradeIds(){
 
 function exportExcel(){
   if(!currentUser) return;
+  if(!isPaidUser){ $("upgradeModal").style.display = "flex"; return; }
   if(typeof XLSX === "undefined"){ alert("Excel export library is still loading — please try again in a moment."); return; }
   if(tradesCache.length === 0){ alert("No saved trades to export yet."); return; }
 
@@ -1409,6 +1419,7 @@ $("exportCsvBtn").addEventListener("click", exportExcel);
 
 function exportBackup(){
   if(!currentUser) return;
+  if(!isPaidUser){ $("upgradeModal").style.display = "flex"; return; }
   const list = sortedIdsDesc();
   const entries = {};
   list.forEach(id=>{
@@ -1667,6 +1678,7 @@ async function bootApp(){
 async function refreshSubscriptionStatus(){
   try {
     const data = await apiFetch("/subscription");
+    isPaidUser = !!data.isPaid;
     const badge = $("planBadge");
     const upBtn = $("upgradeBtn");
     if(data.isPaid){
