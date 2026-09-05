@@ -1758,7 +1758,13 @@ async function refreshSubscriptionStatus(){
     isPaidUser = !!data.isPaid;
     const badge = $("planBadge");
     const upBtn = $("upgradeBtn");
-    if(data.isPaid){
+    if(data.isPaid && data.isTrial){
+      badge.textContent = `PRO TRIAL — ${data.trialDaysLeft} day${data.trialDaysLeft === 1 ? "" : "s"} left`;
+      badge.style.display = "inline-block";
+      badge.style.color = "#A15C00";
+      badge.style.borderColor = "rgba(161,92,0,0.4)";
+      upBtn.style.display = "inline-block"; // still show upgrade so trial users can lock in Pro before it ends
+    } else if(data.isPaid){
       badge.textContent = "PAID";
       badge.style.display = "inline-block";
       badge.style.color = "var(--green)";
