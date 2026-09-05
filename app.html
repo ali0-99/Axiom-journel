@@ -492,6 +492,24 @@ window.fbAsyncInit = function() {
         <button class="btn btn-outline" id="applyLotBtn" style="margin-top:10px;width:100%;padding:10px;">USE THIS LOT SIZE</button>
       </div>
 
+      <div class="card" id="riskRulesCard">
+        <div class="sh"><div class="title">Risk Rules</div><div class="sub">Set daily discipline limits for this account — you'll get a warning before saving a trade that breaks one</div></div>
+        <div id="riskRulesLocked" style="display:none; text-align:center; padding:10px 0;">
+          <div style="font-size:12px; color:var(--muted); margin-bottom:12px;">Custom risk rules are a Pro feature.</div>
+          <button class="btn btn-primary" id="riskRulesUpgradeBtn" style="padding:9px 20px;">UPGRADE TO UNLOCK</button>
+        </div>
+        <div id="riskRulesUnlocked" style="display:none;">
+          <div class="grid grid-2">
+            <div class="field"><label>Max Daily Loss</label><input id="maxDailyLoss" type="text" placeholder="e.g. 50"/></div>
+            <div class="field"><label>Max Trades Per Day</label><input id="maxTradesPerDay" type="text" placeholder="e.g. 5"/></div>
+          </div>
+          <div class="grid grid-2">
+            <div class="field"><label>Minimum Risk-to-Reward</label><input id="minRiskReward" type="text" placeholder="e.g. 1.5"/></div>
+          </div>
+          <button class="btn btn-outline" id="saveRiskRulesBtn" style="margin-top:10px;width:100%;padding:10px;">SAVE RISK RULES</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="sh"><div class="title">Trade Result</div><div class="sub">Enter actual pips — P&amp;L is calculated automatically</div></div>
         <div class="grid grid-3">
@@ -847,6 +865,7 @@ async function apiFetch(path, options = {}){
   if(!res.ok){
     const err = new Error(body.error || "Request failed.");
     err.code = body.code || null;
+    err.warnings = body.warnings || null;
     throw err;
   }
   return body;
@@ -915,7 +934,51 @@ function loadAccountSettings(){
   const acc = accountsCache.find(a => a.id === currentAccountId);
   $("accBalance").value = (acc && acc.balance !== null && acc.balance !== undefined) ? acc.balance : "";
   $("riskPct").value = (acc && acc.risk_pct !== null && acc.risk_pct !== undefined) ? acc.risk_pct : "1";
+  loadRiskRulesUI(acc);
 }
+
+function loadRiskRulesUI(acc){
+  const locked = $("riskRulesLocked");
+  const unlocked = $("riskRulesUnlocked");
+  if(!isPaidUser){
+    locked.style.display = "block";
+    unlocked.style.display = "none";
+    return;
+  }
+  locked.style.display = "none";
+  unlocked.style.display = "block";
+  $("maxDailyLoss").value = (acc && acc.max_daily_loss !== null && acc.max_daily_loss !== undefined) ? acc.max_daily_loss : "";
+  $("maxTradesPerDay").value = (acc && acc.max_trades_per_day !== null && acc.max_trades_per_day !== undefined) ? acc.max_trades_per_day : "";
+  $("minRiskReward").value = (acc && acc.min_risk_reward !== null && acc.min_risk_reward !== undefined) ? acc.min_risk_reward : "";
+}
+
+async function saveRiskRules(){
+  if(!currentAccountId) return;
+  try {
+    const data = await apiFetch(`/accounts/${currentAccountId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        maxDailyLoss: $("maxDailyLoss").value || null,
+        maxTradesPerDay: $("maxTradesPerDay").value || null,
+        minRiskReward: $("minRiskReward").value || null,
+      }),
+    });
+    const idx = accountsCache.findIndex(a => a.id === currentAccountId);
+    if(idx > -1) accountsCache[idx] = data.account;
+    alert("Risk rules saved.");
+  } catch(err){
+    if(err.code === "UPGRADE_REQUIRED"){
+      $("upgradeModal").style.display = "flex";
+    } else {
+      alert(err.message || "Could not save risk rules.");
+    }
+  }
+}
+
+$("saveRiskRulesBtn").addEventListener("click", saveRiskRules);
+$("riskRulesUpgradeBtn").addEventListener("click", ()=>{
+  $("upgradeModal").style.display = "flex";
+});
 
 async function saveAccountSettings(){
   if(!currentAccountId) return;
@@ -1220,21 +1283,22 @@ async function loadTradesFromServer(){
   tradesCache = data.trades.map(t => ({ id: t.id, data: t.data }));
 }
 
-async function saveEntry(){
+async function saveEntry(force){
   const btn = $("saveBtn");
   btn.textContent = "SAVING...";
   btn.className = "btn btn-save";
   try {
     const state = gatherState();
+    const payload = JSON.stringify({ data: state, force: !!force });
     if(currentEntryId){
       const data = await apiFetch(`/accounts/${currentAccountId}/trades/${currentEntryId}`, {
-        method: "PUT", body: JSON.stringify(state),
+        method: "PUT", body: payload,
       });
       const idx = tradesCache.findIndex(t => t.id === currentEntryId);
       if(idx > -1) tradesCache[idx] = { id: data.trade.id, data: data.trade.data };
     } else {
       const data = await apiFetch(`/accounts/${currentAccountId}/trades`, {
-        method: "POST", body: JSON.stringify(state),
+        method: "POST", body: payload,
       });
       tradesCache.push({ id: data.trade.id, data: data.trade.data });
       currentEntryId = data.trade.id;
@@ -1244,6 +1308,17 @@ async function saveEntry(){
     btn.textContent = "SAVED";
     btn.className = "btn btn-save saved";
   } catch(e){
+    // A risk rule warning isn't a real error — offer to save anyway instead
+    // of just showing "ERROR" and leaving the trade unsaved.
+    if(e.code === "RISK_RULE_WARNING" && Array.isArray(e.warnings)){
+      const message = "Risk rule warning:\n\n" + e.warnings.join("\n") + "\n\nSave this trade anyway?";
+      btn.textContent = "SAVE";
+      btn.className = "btn btn-save";
+      if(confirm(message)){
+        return saveEntry(true);
+      }
+      return;
+    }
     console.error("Save trade error:", e.message);
     btn.textContent = "ERROR";
     btn.className = "btn btn-save error";
@@ -1695,6 +1770,10 @@ async function refreshSubscriptionStatus(){
       badge.style.color = "var(--muted)";
       upBtn.style.display = "inline-block";
     }
+    // Plan status may have just changed (e.g. right after checkout) —
+    // refresh the Risk Rules card so it flips from locked to unlocked
+    // without needing a full page reload.
+    loadRiskRulesUI(accountsCache.find(a => a.id === currentAccountId));
   } catch(e){
     console.error("Could not load subscription status:", e.message);
   }
