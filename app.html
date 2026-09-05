@@ -267,6 +267,7 @@
     body { background: #fff; }
   }
 </style>
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 </head>
 <script>
 window.fbAsyncInit = function() {
@@ -406,7 +407,8 @@ window.fbAsyncInit = function() {
   <div id="upgradeModal" style="display:none; position:fixed; inset:0; background:rgba(32,26,18,0.55); z-index:900; align-items:center; justify-content:center;">
     <div style="width:100%; max-width:380px; background:#FFFFFF; border:1px solid var(--card-border); border-radius:10px; padding:28px; text-align:center; margin:16px;">
       <div style="font-size:16px; font-weight:800; letter-spacing:1px; margin-bottom:6px; color:var(--text);">UPGRADE TO PAID</div>
-      <div style="font-size:12px; color:var(--muted); margin-bottom:18px; line-height:1.6;">Payment via card, JazzCash, and Easypaisa is being set up.<br/>Full pricing and checkout are coming soon.</div>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:18px; line-height:1.6;">Unlock multiple trading accounts, Excel export, and JSON backup — $1.99/month.</div>
+      <button class="btn btn-primary" id="startCheckoutBtn" style="width:100%; padding:10px; margin-bottom:10px;">UPGRADE NOW — $1.99/mo</button>
       <button class="btn btn-outline" id="closeUpgradeModal" style="width:100%; padding:10px;">CLOSE</button>
     </div>
   </div>
@@ -1703,6 +1705,49 @@ $("upgradeBtn").addEventListener("click", ()=>{
 });
 $("closeUpgradeModal").addEventListener("click", ()=>{
   $("upgradeModal").style.display = "none";
+});
+
+/* ══════════════════ PADDLE CHECKOUT ══════════════════ */
+// Client-side token is safe to expose in frontend code — it's designed for this,
+// unlike the secret API key which stays server-side only.
+const PADDLE_CLIENT_TOKEN = "live_3a1198b5b1dff9840d6b3202e07";
+const PADDLE_PRICE_ID = "pri_01m1r0a84w5040ra24mahvcf7d";
+let paddleReady = false;
+
+try {
+  Paddle.Initialize({
+    token: PADDLE_CLIENT_TOKEN,
+    eventCallback: function(event){
+      // When checkout completes, refresh the plan badge/isPaidUser flag —
+      // the backend won't actually know the user is paid until the webhook
+      // lands, so this just gives a fast "let's check" nudge on the frontend.
+      if(event.name === "checkout.completed"){
+        $("upgradeModal").style.display = "none";
+        setTimeout(refreshSubscriptionStatus, 2000);
+        alert("Payment received! It may take a few seconds for your account to update — refresh if needed.");
+      }
+    }
+  });
+  paddleReady = true;
+} catch(e){
+  console.error("Paddle failed to initialize:", e.message);
+}
+
+$("startCheckoutBtn").addEventListener("click", ()=>{
+  if(!paddleReady){
+    alert("Checkout is still loading — please try again in a moment.");
+    return;
+  }
+  if(!currentUser){
+    alert("Please log in before upgrading.");
+    return;
+  }
+  // customData carries the username through to the webhook, so the backend
+  // knows which account to mark as paid once Paddle confirms payment.
+  Paddle.Checkout.open({
+    items: [{ priceId: PADDLE_PRICE_ID, quantity: 1 }],
+    customData: { axiom_username: currentUser }
+  });
 });
 
 (async function initAuthCheck(){
