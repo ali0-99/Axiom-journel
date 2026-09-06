@@ -1784,7 +1784,13 @@ async function refreshSubscriptionStatus(){
     isPaidUser = !!data.isPaid;
     const badge = $("planBadge");
     const upBtn = $("upgradeBtn");
-    if(data.isPaid && data.isTrial){
+    if(data.isAdmin){
+      badge.textContent = "ADMIN";
+      badge.style.display = "inline-block";
+      badge.style.color = "#7C3AED";
+      badge.style.borderColor = "rgba(124,58,237,0.4)";
+      upBtn.style.display = "none";
+    } else if(data.isPaid && data.isTrial){
       badge.textContent = `PRO TRIAL — ${data.trialDaysLeft} day${data.trialDaysLeft === 1 ? "" : "s"} left`;
       badge.style.display = "inline-block";
       badge.style.color = "#A15C00";
