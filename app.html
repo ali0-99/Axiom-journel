@@ -561,6 +561,14 @@ window.fbAsyncInit = function() {
     <div class="tab-panel" data-panel="2">
       <div class="card">
         <div class="sh"><div class="title">Psychology &amp; Mindset</div><div class="sub">Mental state tracking — the real edge over other traders</div></div>
+        <div class="field">
+          <label>Mood Tag <span id="moodProBadge" style="font-size:10px; color:#A15C00; display:none;">(PRO — unlocks win-rate insights)</span></label>
+          <select id="moodTag">
+            <option value="">— Select a mood —</option>
+            <option>Confident</option><option>Anxious</option><option>Revenge</option>
+            <option>Calm</option><option>FOMO</option><option>Bored</option><option>Excited</option>
+          </select>
+        </div>
         <div class="field"><label>Mood Before Trading</label><textarea id="moodBefore" rows="3" placeholder="Calm? Anxious? Confident? Distracted? Be honest..."></textarea></div>
         <div class="field"><label>Thinking Before Trade</label><textarea id="thinkingBefore" rows="3" placeholder="What was going through your mind before entering?"></textarea></div>
         <div class="field"><label>Thinking After Trade</label><textarea id="thinkingAfter" rows="3" placeholder="How did you feel after close? Regret? Relief? Confidence?"></textarea></div>
@@ -593,6 +601,23 @@ window.fbAsyncInit = function() {
 
     <!-- TAB 4: METRICS -->
     <div class="tab-panel" data-panel="4">
+      <div class="card" id="moodInsightsCard">
+        <div class="sh"><div class="title">Trading Psychology<span class="auto-badge">AUTO</span></div><div class="sub">Win rate and average P&amp;L broken down by the mood you tagged on each trade</div></div>
+        <div id="moodInsightsLocked" style="display:none; text-align:center; padding:14px 0;">
+          <div style="font-size:12px; color:var(--muted); margin-bottom:12px;">Mood-based insights are a Pro feature. Tag a mood on your trades to unlock this.</div>
+          <button class="btn btn-primary" id="moodInsightsUpgradeBtn" style="padding:9px 20px;">UPGRADE TO UNLOCK</button>
+        </div>
+        <div id="moodInsightsUnlocked" style="display:none;">
+          <div id="moodInsightsNote" style="font-size:12.5px; color:#A15C00; margin-bottom:12px; display:none;"></div>
+          <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th style="text-align:left;">Mood</th><th>Trades</th><th>Win Rate</th><th>Avg P&amp;L</th></tr></thead>
+            <tbody id="moodInsightsRows"><tr><td colspan="4" style="text-align:center;color:var(--muted);">Tag a mood on a few trades to see insights here.</td></tr></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="sh"><div class="title">Equity Curve<span class="auto-badge">AUTO</span></div><div class="sub">Cumulative profit &amp; loss across all completed trades, in order</div></div>
         <div id="equityChartWrap"></div>
@@ -657,7 +682,7 @@ const TRADE_FIELDS = ["date","day","pair","lotSize","direction","session","struc
   "openTime","closeTime","holdTime","entryPrice","tpPrice","slPrice","targetPips","slPips","rrRatio",
   "resultPips","result","pnlAmount"];
 const MISTAKE_FIELDS = ["madeToday","biggest","lesson","worked","didnt"];
-const PSYCH_FIELDS = ["moodBefore","thinkingBefore","thinkingAfter","followedPlan"];
+const PSYCH_FIELDS = ["moodTag","moodBefore","thinkingBefore","thinkingAfter","followedPlan"];
 const IMPROVE_FIELDS = ["improveTomorrow","rules"];
 const METRIC_FIELDS = ["totalW","totalM","totalY","lossW","lossM","lossY","beW","beM","beY",
   "successRatio","bestSession","bestTrade","bestTradeWhy","worstTrade","worstTradeWhat",
@@ -1214,6 +1239,7 @@ async function bootAccountData(){
     console.error("Could not load trades:", e.message);
     tradesCache = [];
   }
+  loadMoodInsights();
   try {
     const draft = localStorage.getItem(draftKey());
     if(draft) applyState(JSON.parse(draft));
@@ -1780,6 +1806,7 @@ async function refreshSubscriptionStatus(){
     // refresh the Risk Rules card so it flips from locked to unlocked
     // without needing a full page reload.
     loadRiskRulesUI(accountsCache.find(a => a.id === currentAccountId));
+    loadMoodInsights();
   } catch(e){
     console.error("Could not load subscription status:", e.message);
   }
@@ -1790,6 +1817,57 @@ $("upgradeBtn").addEventListener("click", ()=>{
 });
 $("closeUpgradeModal").addEventListener("click", ()=>{
   $("upgradeModal").style.display = "none";
+});
+
+/* ══════════════════ TRADING PSYCHOLOGY / MOOD INSIGHTS ══════════════════ */
+async function loadMoodInsights(){
+  const locked = $("moodInsightsLocked");
+  const unlocked = $("moodInsightsUnlocked");
+  const moodProBadge = $("moodProBadge");
+
+  if(!isPaidUser){
+    locked.style.display = "block";
+    unlocked.style.display = "none";
+    moodProBadge.style.display = "inline";
+    return;
+  }
+  locked.style.display = "none";
+  unlocked.style.display = "block";
+  moodProBadge.style.display = "none";
+
+  try {
+    const data = await apiFetch(`/accounts/${currentAccountId}/mood-insights`);
+    const rows = $("moodInsightsRows");
+    const note = $("moodInsightsNote");
+
+    if(!data.insights || data.insights.length === 0){
+      rows.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);">Tag a mood on a few trades to see insights here.</td></tr>`;
+      note.style.display = "none";
+      return;
+    }
+
+    rows.innerHTML = data.insights.map(i => `
+      <tr>
+        <td class="mlabel">${escapeHtml(i.mood)}</td>
+        <td class="mval">${i.totalTrades}</td>
+        <td class="mval">${i.winRate !== null ? i.winRate + "%" : "—"}</td>
+        <td class="mval">${i.avgPnl}</td>
+      </tr>
+    `).join("");
+
+    if(data.worstMoodNote){
+      note.textContent = data.worstMoodNote;
+      note.style.display = "block";
+    } else {
+      note.style.display = "none";
+    }
+  } catch(e){
+    console.error("Could not load mood insights:", e.message);
+  }
+}
+
+$("moodInsightsUpgradeBtn").addEventListener("click", ()=>{
+  $("upgradeModal").style.display = "flex";
 });
 
 /* ══════════════════ PADDLE CHECKOUT ══════════════════ */
