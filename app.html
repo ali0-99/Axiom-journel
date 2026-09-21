@@ -267,7 +267,7 @@
     body { background: #fff; }
   }
 </style>
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 </head>
 <script>
 window.fbAsyncInit = function() {
@@ -2031,47 +2031,62 @@ $("badDayDismissBtn").addEventListener("click", ()=>{
   $("badDayBanner").style.display = "none";
 });
 
-/* ══════════════════ PADDLE CHECKOUT ══════════════════ */
-// Client-side token is safe to expose in frontend code — it's designed for this,
-// unlike the secret API key which stays server-side only.
-const PADDLE_CLIENT_TOKEN = "live_3a1198b5b1dff9840d6b3202e07";
-const PADDLE_PRICE_ID = "pri_01m1r0a84w5040ra24mahvcf7d";
-let paddleReady = false;
+/* ══════════════════ LEMON SQUEEZY CHECKOUT ══════════════════ */
+// This is a PUBLIC checkout link (safe to keep in frontend code, it is not a secret).
+// Source: Lemon Squeezy dashboard -> Store -> Products -> Share.
+const LEMON_CHECKOUT_URL = "https://axiomjournal.lemonsqueezy.com/checkout/buy/1f35026a-84a1-4260-a4ab-9311d346f9d6";
 
-try {
-  Paddle.Initialize({
-    token: PADDLE_CLIENT_TOKEN,
-    eventCallback: function(event){
-      // When checkout completes, refresh the plan badge/isPaidUser flag —
-      // the backend won't actually know the user is paid until the webhook
-      // lands, so this just gives a fast "let's check" nudge on the frontend.
-      if(event.name === "checkout.completed"){
-        $("upgradeModal").style.display = "none";
-        setTimeout(refreshSubscriptionStatus, 2000);
-        alert("Payment received! It may take a few seconds for your account to update — refresh if needed.");
-      }
+// lemon.js is loaded with "defer", so it may not be ready the instant this
+// script runs. We (re)initialise it defensively and never let a failure here
+// break the rest of the app.
+function initLemonSqueezy(){
+  try {
+    if(typeof window.createLemonSqueezy === "function"){ window.createLemonSqueezy(); }
+    if(window.LemonSqueezy && typeof window.LemonSqueezy.Setup === "function"){
+      window.LemonSqueezy.Setup({
+        eventHandler: function(event){
+          // When checkout completes, nudge the app to re-check the plan. The
+          // backend only flips the plan when Lemon Squeezy's webhook lands,
+          // so this just makes the UI catch up quickly.
+          if(event && event.event === "Checkout.Success"){
+            $("upgradeModal").style.display = "none";
+            setTimeout(refreshSubscriptionStatus, 3000);
+            setTimeout(refreshSubscriptionStatus, 8000);
+            alert("Payment received! Your account will switch to Pro in a few seconds — refresh if needed.");
+          }
+        }
+      });
+      return true;
     }
-  });
-  paddleReady = true;
-} catch(e){
-  console.error("Paddle failed to initialize:", e.message);
+  } catch(e){
+    console.error("Lemon Squeezy failed to initialize:", e.message);
+  }
+  return false;
 }
+window.addEventListener("load", initLemonSqueezy);
 
 $("startCheckoutBtn").addEventListener("click", ()=>{
-  if(!paddleReady){
-    alert("Checkout is still loading — please try again in a moment.");
-    return;
-  }
   if(!currentUser){
     alert("Please log in before upgrading.");
     return;
   }
-  // customData carries the username through to the webhook, so the backend
-  // knows which account to mark as paid once Paddle confirms payment.
-  Paddle.Checkout.open({
-    items: [{ priceId: PADDLE_PRICE_ID, quantity: 1 }],
-    customData: { axiom_username: currentUser }
-  });
+  // The username travels through checkout[custom][...] and comes back to our
+  // webhook in meta.custom_data, so the backend knows which account paid.
+  const url = LEMON_CHECKOUT_URL
+    + (LEMON_CHECKOUT_URL.indexOf("?") === -1 ? "?" : "&")
+    + "checkout[custom][axiom_username]=" + encodeURIComponent(currentUser);
+
+  try {
+    if(window.LemonSqueezy && window.LemonSqueezy.Url && typeof window.LemonSqueezy.Url.Open === "function"){
+      window.LemonSqueezy.Url.Open(url);   // overlay on top of the page
+      return;
+    }
+  } catch(e){
+    console.error("Lemon overlay failed, falling back to new tab:", e.message);
+  }
+  // Fallback: if lemon.js did not load (ad blocker, slow network), open the
+  // hosted checkout page in a new tab instead. Payment still works.
+  window.open(url, "_blank", "noopener");
 });
 
 (async function initAuthCheck(){
